@@ -2,7 +2,10 @@ import os
 import json
 import torch
 import ffmpeg
+import librosa
+import noisereduce as nr
 from os import environ
+from scipy.io import wavfile
 from dotenv import load_dotenv
 from pydub import AudioSegment
 from pyannote.audio import Pipeline
@@ -12,15 +15,18 @@ class Audio_Preprocessing():
     def __init__(self, raw_video_path):
         super(Audio_Preprocessing, self).__init__()
         self.raw_video_path = raw_video_path
-        self.output_folder = os.path.dirname(self.raw_video_path)
+        self.output_folder = "./data/audios"
         self.save_name = self.raw_video_path.split("/")[-1].split(".")[0]
     
-    def extract_audio(self,):
+    def extract_audio(self):
         print("Audio extract started")
         stream = ffmpeg.input(self.raw_video_path)
         audio = stream.audio
         audio_save_name = self.save_name + "_audio.wav"
-        audio_output_path = os.path.join(self.output_folder, audio_save_name).replace("\\", "/")
+        audio_output_folder= os.path.join(self.output_folder, self.save_name).replace("\\", "/")
+        if not os.path.exists(audio_output_folder):
+            os.makedirs(audio_output_folder)
+        audio_output_path = os.path.join(audio_output_folder, audio_save_name).replace("\\", "/")
         self.audio_ouptut_path = audio_output_path
         audio_output = ffmpeg.output(audio, audio_output_path)
         ffmpeg.run(audio_output)
@@ -34,7 +40,7 @@ class Audio_Preprocessing():
         pipeline = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.1",
             use_auth_token=HUGGINGFACE_ACCESS_TOKEN)
-
+        
         pipeline.to(torch.device("cuda"))
 
         # apply pretrained pipeline
@@ -55,8 +61,8 @@ class Audio_Preprocessing():
         #         new_data[-1]["stop"] = data[i]["stop"]
         #     else:
         #         new_data.append(data[i]) 
-        
-        data_output_path = os.path.join(self.output_folder, "data.json").replace("\\", "/")
+        data_output_folder = os.path.join(self.output_folder, self.save_name).replace("\\", "/")
+        data_output_path = os.path.join(data_output_folder, f"{self.save_name}_diarization_data.json").replace("\\", "/")
         with open(data_output_path, "w") as file:
             file.write(json.dumps(data, indent=3)+"\n")
         print("Diarization done")
@@ -85,13 +91,46 @@ class Audio_Preprocessing():
                 else:
                     end = len(original_audio)
                     
-                print(start, end)
+                # print(start, end)
                 selected_segments.append(original_audio[start:end])
         
-        result_audio = sum(selected_segments)  
+        result_audio = sum(selected_segments)
+        processed_output_folder = os.path.join(self.output_folder, self.save_name).replace("\\", "/")  
         processed_audio_name = self.save_name + "_processed_audio.wav"
-        sound_output_path = os.path.join(self.output_folder, processed_audio_name).replace("\\", "/")
+        sound_output_path = os.path.join(processed_output_folder, processed_audio_name).replace("\\", "/")
         result_audio.export(sound_output_path, format="wav")
         print("Mute audio done")
 
+    def noise_reduction(self):
         
+        for root, dirs, files in os.walk(self.output_folder): 
+            for file in files:   
+                if file.endswith("processed_audio.wav"):
+                
+                    audio_file_path = os.path.join(root, file).replace("\\", "/")
+                    print(audio_file_path)
+                    print("Noise reduction started")
+                    
+                    librosa_audio_data,librosa_sample_rate=librosa.load(audio_file_path)
+                    
+                    reduced_noise = nr.reduce_noise(y=librosa_audio_data, sr=librosa_sample_rate,prop_decrease=0.9)
+                    save_name = audio_file_path.split("/")[-1].split("_")[0]
+                    audio_output_path = os.path.join(root, f"{save_name}_reduced_noise.wav").replace("\\", "/")
+                    wavfile.write(audio_output_path, librosa_sample_rate, reduced_noise)
+                    
+                    sound = AudioSegment.from_file(audio_output_path , format="wav")
+                    db = sound.dBFS
+                    def match_target_amplitude(sound, target_dBFS):
+                        change_in_dBFS = target_dBFS - sound.dBFS
+                        return sound.apply_gain(change_in_dBFS)
+                    normalized_sound = match_target_amplitude(sound, db + 5) 
+                    normalized_sound.export(audio_output_path , format="wav")
+        
+        
+        
+if __name__ == "__main__":
+    audio_preprocessing = Audio_Preprocessing("./data/videos/001-ZZD/001.MTS")
+    # audio_preprocessing.extract_audio()
+    # audio_preprocessing.diarization()
+    # audio_preprocessing.mute_audio_at_time()
+    audio_preprocessing.noise_reduction()
