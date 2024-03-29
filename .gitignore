@@ -1,3 +1,4 @@
 .env
 data/
+dataset/
 pretrained_models/
