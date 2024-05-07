@@ -2,11 +2,13 @@ import os
 import json
 import pandas as pd
 import numpy as np
+import pickle
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+
 
 
 json_path = "./dataset/audio_features.json"
@@ -27,7 +29,7 @@ extracted_features_df=pd.DataFrame(features)
 extracted_features_df = pd.concat([extracted_features_df, label_df], axis=1)
 
 # compare the CDR column with the extracted features
-extracted_features_df = pd.concat([extracted_features_df.loc[extracted_features_df["CDR"]==1,:], extracted_features_df.loc[extracted_features_df["CDR"]==2,:]] ,axis=0)
+# extracted_features_df = pd.concat([extracted_features_df.loc[extracted_features_df["CDR"]==0,:], extracted_features_df.loc[extracted_features_df["CDR"]==0.5,:]] ,axis=0)
 
 # extract the features and the labels
 id = extracted_features_df["id"].to_numpy()
@@ -47,21 +49,25 @@ jitter = extracted_features_df["jitter"].to_numpy()
 shimmer = extracted_features_df["shimmer"].to_numpy()   
 
 
-extracted_features_df = np.hstack((mfccs_mean_20, mfccs_std_20, gfccs_mean, gfccs_std))
+extracted_features_df = np.hstack((mfccs_mean_40, mfccs_std_40, gfccs_mean, gfccs_std))
 print(extracted_features_df.shape)
 
 label_encoder = LabelEncoder()
 X = extracted_features_df
 y = label_encoder.fit_transform(cdr)
-# print(y)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,random_state=42)
 
 rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_classifier.fit(X_train, y_train)
 
 y_pred = rf_classifier.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
+
 print(f"Accuracy: {accuracy}")
 
+
+with open('audio_rf_model.pkl', 'wb') as f:
+    pickle.dump(rf_classifier, f)
