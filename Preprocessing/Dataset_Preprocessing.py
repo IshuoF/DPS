@@ -1,20 +1,22 @@
 import os
-import json
 import librosa
+import json
 import numpy as np
-import pandas as pd
 import scipy.io.wavfile
 import spafe.features.gfcc as gfcc
 import parselmouth
+import torch, torchaudio
+from transformers import ASTFeatureExtractor,AutoFeatureExtractor
 from parselmouth.praat import call
 
 
-class dataset_Preprocessing():
-    def __init__(self):
-        super(dataset_Preprocessing, self).__init__()
+class Dataset_Preprocessing():
+    def __init__(self, audio_folder, img_folder):
+        super(Dataset_Preprocessing, self).__init__()
         self.audio_features = []
-        self.audio_folder = "./data/audios"
-        self.img_folder = "./data/imgs"
+        self.spectrograms = []
+        self.audio_folder = audio_folder
+        self.img_folder = img_folder
     
     def get_audio_features(self):
         for root, dirs, files in os.walk(self.audio_folder): 
@@ -80,14 +82,41 @@ class dataset_Preprocessing():
                     
         return self.audio_features             
         
+        
+    def get_spectrogram(self):
+        print("get_spectrogram")
+        
+        for root, dirs, files in os.walk(self.audio_folder): 
+            for file in files:   
+                if file.endswith("reduced_noise.wav"):
+                    print(file)
+                    feature_extractor = AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+                    
+                    audio_file_path = os.path.join(root, file).replace("\\", "/")
+                    waveform, sample_rate = torchaudio.load(audio_file_path)
+                    waveform = waveform.squeeze().numpy()
+                    
+                    inputs = feature_extractor(waveform, sampling_rate=16000, padding="max_length",return_tensors="pt")
+                    print(inputs)
+                    input_values = inputs.input_values
+                    input_values = input_values.view(1024,128)
+                    print(input_values.shape)
+                    data = {
+                        "id": audio_file_path.split("/")[-1].split("_")[0],
+                        "input_values": input_values.tolist()
+                    }
+                    
+                    self.spectrograms.append(data)
+                    
+        return self.spectrograms                   
+        
        
 if __name__ == "__main__":
     features = []
-    dataset_preprocessing = dataset_Preprocessing()
-    features = dataset_preprocessing.get_audio_features()
-    with open("./dataset/audio_features.json", "w") as file:
+    dataset_preprocessing = Dataset_Preprocessing("../data/audios", "../data/imgs")
+    features = dataset_preprocessing.get_spectrogram()
+   
+    with open("../dataset/spectrograms.json", "w") as file:
         json.dump(features, file, indent=4)
         
-    extracted_features_df = pd.DataFrame(features)
-    print(extracted_features_df.head())
   
