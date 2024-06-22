@@ -9,10 +9,12 @@ pydub
 pyannote.audio
 pickles==0.1.1
 ffmpeg-python
-PyQt5==5.15.10
 --extra-index-url https://download.pytorch.org/whl/cu118
 torch==2.2.1 
 torchvision==0.17.1 
 torchaudio==2.2.1 
 transformers==4.40.1
 datasets==2.19.0
+Pyside6==6.6.2
+cx-freeze==7.0.0
+gdown==5.2.0
