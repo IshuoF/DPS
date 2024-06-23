@@ -50,7 +50,7 @@ train_data, test_data = train_test_split(spectrograms_df, test_size=0.2, random_
 train_dataset = SpectrogramDataset(train_data)
 test_dataset = SpectrogramDataset(test_data)
 
-batch_size = 4
+batch_size = 2
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -101,7 +101,7 @@ def evaluate(model, test_loader):
     print(f'Test Accuracy: {accuracy:.4f}')
     
 train(model, train_loader, optimizer, criterion, epochs=50)
-torch.save(model.state_dict(), "./saved_models/spec_best_2.pth")
+torch.save(model.state_dict(), "./saved_models/spec_best.pth")
 evaluate(model, test_loader)
 
 
