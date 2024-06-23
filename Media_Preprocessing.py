@@ -1,7 +1,7 @@
 import os
 import cv2
-
-
+from deepface import DeepFace
+import matplotlib.pyplot as plt
 import json
 import torch,torchaudio
 import ffmpeg
@@ -17,6 +17,10 @@ from pydub import AudioSegment
 from pyannote.audio import Pipeline
 from transformers import AutoFeatureExtractor
 
+from PIL import Image
+from vit_pytorch import ViTs_face
+from torchvision import transforms
+
 class Video_Preprocessing():
     def __init__(self, raw_video_path,output_folder):
         super(Video_Preprocessing, self).__init__()
@@ -25,10 +29,72 @@ class Video_Preprocessing():
         
     def capture_frames(self):
         print("Frames capture started")
-        if not os.path.exists(self.output_folder):
-            os.makedirs(self.output_folder)
+        os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+        output_folder = self.output_folder + '/frames'
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        
+        count = 0
+        frame_number = 0
+        
+        cap = cv2.VideoCapture(self.raw_video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        interval = total_frames // 100
+
+        while True:
+            ret, frame = cap.read()
+            
+            if frame_number % interval == 0:
+                frame_path = os.path.join(output_folder, f"frame_{count}.jpg").replace("\\", "/")
+                
+                result= DeepFace.extract_faces(frame, detector_backend = 'mtcnn',align=True)
+                
+                face_info = result[0]['facial_area']
+                x, y, w, h = face_info['x'],face_info['y'],face_info['w'],face_info['h']
+                face = frame[y:y+h, x:x+w]
+                face = cv2.resize(face, (224, 224))
+                cv2.imwrite(frame_path, face)
+                count += 1
+            
+            frame_number += 1
+
+            if count == 100:
+                break
+        cap.release()
         print("Frames capture finished")
 
+    def face_recongnition(self):
+        print("Face recognition started")
+        os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+        input_folder = self.output_folder + '/frames'
+        imgs = []
+        for i in range(100):
+            img_path = os.path.join(input_folder, f"frame_{i}.jpg").replace("\\", "/")
+            imgs.append(img_path)
+        
+        output_folder = self.output_folder + '/extract_faces' 
+        
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        
+        count = 0
+        for img in imgs:
+       
+            result= DeepFace.extract_faces(img, detector_backend = 'mtcnn',align=True)
+            
+            face_info = result[0]['facial_area']
+            x = face_info['x']
+            y = face_info['y']
+            w = face_info['w']
+            h = face_info['h']
+            # print(x, y, w, h)
+            image = cv2.imread(img)
+            face = image[y:y+h, x:x+w]
+            face = cv2.resize(face, (224, 224))
+            cv2.imwrite(os.path.join(output_folder, f"face_{count}.jpg").replace("\\", "/"), face)
+               
+            count += 1
+        
 class Audio_Preprocessing():
     def __init__(self, raw_video_path,output_folder):
         super(Audio_Preprocessing, self).__init__()
@@ -68,9 +134,10 @@ class Audio_Preprocessing():
         data = []
         # print the result
         for turn, _, speaker in diarization.itertracks(yield_label=True):
-            # print(f"start={turn.start:.1f}s stop={turn.end:.1f}s speaker_{speaker}")
+            
             data.append({"start":f"{turn.start:.1f}", "stop":f"{turn.end:.1f}", "speaker":speaker})
         data_output_path = os.path.join(self.output_folder, f"{self.save_name}_diarization_data.json").replace("\\", "/")
+        
         with open(data_output_path, "w") as file:
             file.write(json.dumps(data, indent=3)+"\n")
         print("Diarization done")
@@ -81,9 +148,6 @@ class Audio_Preprocessing():
 
     def mute_audio_at_time(self):
         print("Mute audio started")
-        # with open(os.path.join(self.save_dir, "data.json").replace("\\", "/"), "r") as file:
-        #     self.data = json.load(file)
-            
         original_audio = AudioSegment.from_file(self.audio_ouptut_path, format="wav")
         speaker = self.data[0]["speaker"]
         
@@ -111,7 +175,6 @@ class Audio_Preprocessing():
     def noise_reduction(self):
         
         audio_file_path = os.path.join(self.output_folder,self.diarization_audio_name).replace("\\", "/")
-        print(audio_file_path)
         print("Noise reduction started")
         
         librosa_audio_data,librosa_sample_rate=librosa.load(audio_file_path)
@@ -123,16 +186,19 @@ class Audio_Preprocessing():
         
         sound = AudioSegment.from_file(audio_output_path , format="wav")
         db = sound.dBFS
+        
+        ## Normalize the audio
         def match_target_amplitude(sound, target_dBFS):
             change_in_dBFS = target_dBFS - sound.dBFS
             return sound.apply_gain(change_in_dBFS)
+        
         normalized_sound = match_target_amplitude(sound, db + 5) 
         normalized_sound.export(audio_output_path , format="wav")
     
 class Data_Preprocessing():
     def __init__(self, output_folder):
         self.audio_path = os.path.join(output_folder,"audios/patient_reduced_noise.wav").replace("\\", "/")
-        self.img_folder = os.path.join(output_folder, "imgs" ).replace("\\", "/")
+        self.img_folder = os.path.join(output_folder, "imgs/frames" ).replace("\\", "/")
         
     def get_MGs(self): # MFCCs & GFCCs 
         
@@ -146,7 +212,6 @@ class Data_Preprocessing():
         gfccs_std = np.std(gfccs,axis=0).tolist()
         
         MGs = np.hstack((mfccs_mean_40, mfccs_std_40, gfccs_mean, gfccs_std)).reshape(1,-1)
-        print(MGs.shape)
         return MGs
     
     def get_Spectrograms(self):
@@ -156,6 +221,50 @@ class Data_Preprocessing():
         inputs = feature_extractor(waveform, sampling_rate=16000, padding="max_length",return_tensors="pt")
         input_values = inputs.input_values
         spectrograms = input_values.view(1024,128)
-        
-        
+
         return spectrograms
+    
+    def get_Faces(self):
+        face_embedding= []
+        trans = transforms.Compose([
+        transforms.Resize((112, 112)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+        ])
+        tester_images = []
+        images_per_tester = 100
+        for image_id in range(images_per_tester):
+            img_path = os.path.join(self.img_folder,  f"frame_{image_id}.jpg").replace("\\", "/")
+            img = Image.open(img_path)
+            img = trans(img)
+            tester_images.append(img)
+
+        tester_images = torch.stack(tester_images)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = ViTs_face(
+                loss_type='CosFace',
+                GPU_ID=device,
+                num_class=93431,
+                image_size=112,
+                patch_size=8,
+                ac_patch_size=12,
+                pad=4,
+                dim=512,
+                depth=20,
+                heads=8,
+                mlp_dim=2048,
+                dropout=0.1,
+                emb_dropout=0.1
+            )
+        model.load_state_dict(torch.load("./pretrained_model/Backbone_VITs_Epoch_2_Batch_12000_Time_2021-03-17-04-05_checkpoint.pth"))
+        model.to(device)
+        model.eval()
+        embeddings = model(tester_images.to(device))
+        print("embeddings: ", embeddings.shape)
+        embeddings = embeddings.cpu().detach().numpy()
+        face_embedding = embeddings
+        
+        return face_embedding
