@@ -1,6 +1,7 @@
 import torch
 import pickle
 from models import ASTModel
+from models import fusion_face_ast
 
 class Media_Predict_Model:
     def __init__(self):
@@ -37,5 +38,22 @@ class Media_Predict_Model:
             predicted_class = predicted
             
         print("Spectrogram_predict_model finished")
+        return predicted_class
+    
+    def Face_predict_model(self,face_embedding):
+        print("Face_predict_model started")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = fusion_face_ast.FusionModel(v_input_size = 512, hidden_size=512, num_layers=2, num_classes=4)
+        model.to(device)
+        model.load_state_dict(torch.load('./saved_models/vit_model.pth'))
+        model.eval()
+        
+        with torch.no_grad():
+            model.eval()
+            input_values = torch.tensor(face_embedding).unsqueeze(0).to(device)
+            output, _ = model(input_values)
+            _, predicted = torch.max(output, dim=1)
+            predicted_class = predicted
+        print("Face_predict_model finished")
         return predicted_class
         
