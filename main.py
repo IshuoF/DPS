@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from GUI import MainWindow
+from PySide6.QtWidgets import QMainWindow, QFileDialog, QPushButton, QApplication
 import sys
+from ui_function import MainWindow
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    mainWindow = MainWindow()
-    mainWindow.show()
-    sys.exit(app.exec_())
+
+app = QApplication(sys.argv)
+window = MainWindow()
+
+window.show()
+app.exec()

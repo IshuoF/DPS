@@ -1,0 +1,25 @@
+<RCC>
+  <qresource prefix="新前置字串">
+    <file>images/select_video.png</file>
+    <file>images/375259_bed_hospital_patient_icon.png</file>
+    <file>images/close.png</file>
+    <file>images/close-white.png</file>
+    <file>images/detection.png</file>
+    <file>images/history.png</file>
+    <file>images/history-white.png</file>
+    <file>images/home.png</file>
+    <file>images/home-white.png</file>
+    <file>images/info.png</file>
+    <file>images/info-white.png</file>
+    <file>images/maxmium.png</file>
+    <file>images/maxmium-white.png</file>
+    <file>images/Menubar.png</file>
+    <file>images/Menubar-white.png</file>
+    <file>images/minimum.png</file>
+    <file>images/minimum-white.png</file>
+    <file>images/platform.png</file>
+    <file>images/platform-white.png</file>
+    <file>images/setting.png</file>
+    <file>images/setting-white.png</file>
+  </qresource>
+</RCC>
