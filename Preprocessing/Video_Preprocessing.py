@@ -1,6 +1,6 @@
 import os
 import cv2
-
+from deepface import DeepFace
 
 class Video_Preprocessing():
     def __init__(self, raw_video_path,output_folder):
@@ -23,47 +23,36 @@ class Video_Preprocessing():
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
         
-        frame_count = 0
-        img_count = 0
+        count = 0
+        frame_number = 0
+        
+        cap = cv2.VideoCapture(self.raw_video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         interval = total_frames // 100
-        print("Frames capture started")
+
         while True:
             ret, frame = cap.read()
-
-            if not ret:
-                break
-            if img_count >= 100:
-                break
             
-            if frame_count % interval == 0:
-                frame_path = os.path.join(output_folder, f"frame_{img_count}.jpg")
-
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-                face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_alt2.xml')
-                faces = face_cascade.detectMultiScale(gray, 1.1, 6, 0)
-
-                # Check if faces are detected, if not, continue to the next frame
-                if len(faces) == 0:
-                    continue
-
-                # Save the first detected face
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 0), 2)
-                    face_roi = frame[y:y + h, x:x + w]
-                    cv2.imwrite(frame_path, face_roi)
-                    img_count += 1
-                    break  # Break out of the loop after saving the first detected face
-
-                # Increment frame count only if a face is detected
-                frame_count += 1
-
-            else:
-                frame_count += 1
+            if frame_number % interval == 0:
+                
+                if count >=76:
+                    frame_path = os.path.join(output_folder, f"frame_{count}.jpg").replace("\\", "/")
+                    
+                    result= DeepFace.extract_faces(frame, detector_backend = 'mtcnn',align=True)
+                    
+                    face_info = result[0]['facial_area']
+                    x, y, w, h = face_info['x'],face_info['y'],face_info['w'],face_info['h']
+                    face = frame[y:y+h, x:x+w]
+                    face = cv2.resize(face, (224, 224))
+                    cv2.imwrite(frame_path, face)
+                count += 1
             
+            frame_number += 1
+
+            if count == 100:
+                break
         cap.release()
-        print("Frames capture done")
+        print("Frames capture finished")
     
     # def face_detection(self):
     #     # Read the input image 
@@ -91,6 +80,14 @@ class Video_Preprocessing():
     #     cv2.waitKey()
         
 if __name__ == "__main__":
-    video_preprocessing = Video_Preprocessing("./data/videos/054-GXY/054.MTS")
+    print("Start")
+    # for root, dirs, files in os.walk("../data/videos"): 
+    #     for file in files:  
+    #         if file.endswith(".MTS"):
+    #             if int(file.split(".")[0]) >126:
+    #                 video_preprocessing = Video_Preprocessing(os.path.join(root, file).replace("\\", "/"), "../data")
+    #                 video_preprocessing.capture_frames()
+    video_preprocessing = Video_Preprocessing("../data/videos/006-XSH/006.MTS","../data")
+    
     video_preprocessing.capture_frames()
     print("Done")

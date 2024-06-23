@@ -8,7 +8,11 @@ import parselmouth
 import torch, torchaudio
 from transformers import ASTFeatureExtractor,AutoFeatureExtractor
 from parselmouth.praat import call
-
+import os
+import numpy as np
+from PIL import Image
+from vit_pytorch import ViTs_face
+from torchvision import transforms
 
 class Dataset_Preprocessing():
     def __init__(self, audio_folder, img_folder):
@@ -110,13 +114,63 @@ class Dataset_Preprocessing():
                     
         return self.spectrograms                   
         
-       
+    def get_images(self):
+        print("get_images")
+        face_embedding= []
+        images_per_tester = 100
+        trans = transforms.Compose([
+        transforms.Resize((112, 112)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+        ])
+        
+        for dirs in os.listdir(self.img_folder):
+            print(dirs," start")
+            tmp_folder = os.path.join(self.img_folder, dirs)
+            
+            tester_images = []
+            for image_id in range(images_per_tester):
+                img_path = os.path.join(tmp_folder,  f"frame_{image_id}.jpg").replace("\\", "/")
+                img = Image.open(img_path)
+                img = trans(img)
+                tester_images.append(img)
+
+            tester_images = torch.stack(tester_images)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            model = ViTs_face(
+                    loss_type='CosFace',
+                    GPU_ID=device,
+                    num_class=93431,
+                    image_size=112,
+                    patch_size=8,
+                    ac_patch_size=12,
+                    pad=4,
+                    dim=512,
+                    depth=20,
+                    heads=8,
+                    mlp_dim=2048,
+                    dropout=0.1,
+                    emb_dropout=0.1
+                )
+            model.load_state_dict(torch.load("../pretrained_model/Backbone_VITs_Epoch_2_Batch_12000_Time_2021-03-17-04-05_checkpoint.pth"))
+            model.to(device)
+            model.eval()
+            embeddings = model(tester_images.to(device))
+            print("embeddings: ", embeddings.shape)
+            embeddings = embeddings.cpu().detach().numpy()
+            face_embedding.append(embeddings)    
+        
+        np.savez(os.path.join("../dataset", "face_dataset.npz"), face_embedding=face_embedding)
+        
+        
 if __name__ == "__main__":
-    features = []
+    
     dataset_preprocessing = Dataset_Preprocessing("../data/audios", "../data/imgs")
-    features = dataset_preprocessing.get_spectrogram()
+    dataset_preprocessing.get_images()
    
-    with open("../dataset/spectrograms.json", "w") as file:
-        json.dump(features, file, indent=4)
+    
         
   
