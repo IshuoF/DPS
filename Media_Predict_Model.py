@@ -9,7 +9,7 @@ class Media_Predict_Model:
         
     def MGs_predict_model(self,patient_data):
         print("MGs_predict_model started")
-        with open('./saved_models/audio_rf_model.pkl', 'rb') as f:
+        with open('./saved_models/audio_best.pkl', 'rb') as f:
             model = pickle.load(f)
         
         predicted_class = model.predict(patient_data)
@@ -45,7 +45,7 @@ class Media_Predict_Model:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = fusion_face_ast.FusionModel(v_input_size = 512, hidden_size=512, num_layers=2, num_classes=4)
         model.to(device)
-        model.load_state_dict(torch.load('./saved_models/vit_model.pth'))
+        model.load_state_dict(torch.load('./saved_models/vit_best.pth'))
         model.eval()
         
         with torch.no_grad():
