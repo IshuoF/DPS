@@ -61,8 +61,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.info_hide.clicked.connect(self.switch_to_info)
         self.info_vis.clicked.connect(self.switch_to_info)
         
-        self.output_folder = "C:/Users/USER/Desktop/Patient"
-        self.database = "C:/Users/USER/Desktop/Patient/predictions.sqlite"
+        self.output_folder = "/home/shuo/Desktop/Patient"
+        self.database = "/home/shuo/Desktop/Patient/predictions.sqlite"
         # thread
         self.analysis_thread = AnalysisThread(self)
         self.analysis_thread.finished.connect(self.analysis_finished)
