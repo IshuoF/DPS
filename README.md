@@ -55,10 +55,10 @@ moderate dementia (CDR = 2), and severe dementia (CDR = 3). For this project, we
 
 ### Setup Instructions
 ```bash
-pip install -r requirments
 git clone https://github.com/IshuoF/DPS.git
-
 cd DPS
+pip3 install -r requirments
+
 mkdir saved_models
 cd saved_models
 
