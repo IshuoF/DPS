@@ -42,7 +42,7 @@ moderate dementia (CDR = 2), and severe dementia (CDR = 3). For this project, we
 
 ```
 ### Explanation:
-- `data/` - Directory for raw data storage.
+- `data/` - Directory for accessing raw data storage from the lab.
 - `dataset/` - Directory for processed data storage.
 - `GUI/`  - Directory for GUI icon files and ui design file.
 -  `Preprocessing/` - Directory containing preprocessing scripts that handle raw data preparation for training models.
@@ -50,7 +50,7 @@ moderate dementia (CDR = 2), and severe dementia (CDR = 3). For this project, we
 ## Usage
 ### Environment
 - Ubuntu 22.04 LTS
-- Python 3.11.9
+- Python 3.11.0
 
 
 ### Setup Instructions
