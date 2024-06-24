@@ -63,20 +63,20 @@ mkdir saved_models
 cd saved_models
 
 # mfccs feature
-gdown  'https://drive.google.com/file/d/1Z2R5zs6IISDxGCXzRvf0LaHU9YRU0tfc/view?usp=sharing'
+gdown 'https://drive.google.com/uc?id=1Z2R5zs6IISDxGCXzRvf0LaHU9YRU0tfc'
 
 # spectrogram
-gdown  'https://drive.google.com/file/d/1JDLuczMVQSleAiHW6d8AdLhach0rp5u_/view?usp=sharing'
+gdown  'https://drive.google.com/uc?id=1JDLuczMVQSleAiHW6d8AdLhach0rp5u_'
 
 # face feature
-gdown  'https://drive.google.com/file/d/1fy4Hu7Htk_e4MJIGrFlXIe0APcXQ6_4Z/view?usp=sharing'
+gdown  'https://drive.google.com/uc?id=1fy4Hu7Htk_e4MJIGrFlXIe0APcXQ6_4Z'
 
 cd ..
 mkdir pretrained_model
 cd pretrained_model
 
 # download pretrained model
-gdown 'https://drive.google.com/file/d/1ufPaGt6Zn5j6OlvcRJ3yg6uiaWRLz3K1/view?usp=sharing'
+gdown 'https://drive.google.com/uc?id=1ufPaGt6Zn5j6OlvcRJ3yg6uiaWRLz3K1'
 ```
 
 ## Usage Instructions
