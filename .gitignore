@@ -3,3 +3,4 @@ data/
 dataset/
 pretrained_model/
 saved_models/
+__pycache__/
