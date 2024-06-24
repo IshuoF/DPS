@@ -79,6 +79,11 @@ cd pretrained_model
 gdown 'https://drive.google.com/uc?id=1ufPaGt6Zn5j6OlvcRJ3yg6uiaWRLz3K1'
 ```
 
+## Modify vit_pytorch package
+Follow the instructions in the link below.
+
+https://github.com/zhongyy/Face-Transformer
+
 ## Usage Instructions
 ```bash
 cd DPS
